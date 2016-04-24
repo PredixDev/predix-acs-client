@@ -76,12 +76,14 @@ data.stubDenyResponse = {
 
 data.testOptions = {
     uaa: {
-        uri: 'https://predix-uaa.test.predix.io',
+        uri: 'https://predix-uaa.test.predix.io/oauth/token',
         clientId: 'test',
         clientSecret: 'secret'
     },
     acsUri: 'https://predix-acs.test.predix.io',
     zoneId: 'abcdefghi'
 };
+
+data.acsEvalUri = data.testOptions.acsUri + '/v1/policy-evaluation';
 
 module.exports = data;

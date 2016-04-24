@@ -117,7 +117,7 @@ module.exports = (config) => {
             acs_utils._getToken().then((token) => {
                 // Formulate the request object
                 const options = {
-                    url: config.acsUri,
+                    url: config.acsUri + '/v1/policy-evaluation',
                     headers: {
                         'cache-control': 'no-cache',
                         'content-type': 'application/x-www-form-urlencoded'

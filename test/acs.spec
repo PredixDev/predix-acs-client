@@ -300,7 +300,7 @@ describe('#Authroization', () => {
             // Check that the evaluate policy call was made correctly
             expect(stub.calledOnce).to.be.true;
             const acsReq = stub.firstCall.args[0];
-            expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+            expect(acsReq.url).to.equal(testData.acsEvalUri);
             expect(acsReq.body.action).to.equal('GET');
             expect(acsReq.body.resourceIdentifier).to.equal('/abc/def');
             expect(acsReq.body.subjectIdentifier).to.equal('test_user');
@@ -329,7 +329,7 @@ describe('#Authroization', () => {
             try {
                 expect(stub.calledOnce).to.be.true;
                 const acsReq = stub.firstCall.args[0];
-                expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+                expect(acsReq.url).to.equal(testData.acsEvalUri);
                 expect(acsReq.body.action).to.equal('GET');
                 expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
                 expect(acsReq.body.subjectIdentifier).to.equal('test_user');
@@ -360,7 +360,7 @@ describe('#Authroization', () => {
             try {
                 expect(stub.calledOnce).to.be.true;
                 const acsReq = stub.firstCall.args[0];
-                expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+                expect(acsReq.url).to.equal(testData.acsEvalUri);
                 expect(acsReq.body.action).to.equal('GET');
                 expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
                 expect(acsReq.body.subjectIdentifier).to.equal('test_user');
@@ -391,7 +391,7 @@ describe('#Authroization', () => {
             try {
                 expect(stub.calledOnce).to.be.true;
                 const acsReq = stub.firstCall.args[0];
-                expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+                expect(acsReq.url).to.equal(testData.acsEvalUri);
                 expect(acsReq.body.action).to.equal('GET');
                 expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
                 expect(acsReq.body.subjectIdentifier).to.equal('test_user');
