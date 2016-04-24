@@ -29,6 +29,16 @@ module.exports = (config) => {
     // This will fetch and cache an access token for the provided UAA client using the credentials
     // that were provided at configuration time.
     // If there is already a token which has not expired, that will be returned immediately
+
+    /**
+     * This will fetch and cache an access token for the provided UAA client using the credentials
+     * that were provided at configuration time.
+     * If there is already a token which has not expired, that will be returned immediately
+     *
+     * @returns {promise} - A promise to provide a token.
+     *                      Resolves with the token if successful (or already available).
+     *                      Rejected with an error if an error occurs.
+     */
     acs_utils._getToken = () => {
         // URL for the token is <UAA_Server>/oauth/token
         return new Promise((resolve, reject) => {
@@ -39,7 +49,6 @@ module.exports = (config) => {
             // Check the current token
             if(access_token && access_token.expire_time > now) {
                 // Already have it.
-                debug('Existing token is OK');
                 resolve(access_token.token);
                 alreadyResolved = true;
             }
@@ -48,17 +57,17 @@ module.exports = (config) => {
             // If we don't have one, or ours is expiring soon, then yes!
             if(!access_token || access_token.renew_time < now) {
                 // Yep, don't have one, or this one will expire soon.
-                debug('Fetching new token because', access_token, now);
+                debug('Fetching new token');
 
                 const options = {
-                    url: 'https://2387a4ea-11a4-4fe3-8c6c-00b8732b3933.predix-uaa.run.asv-pr.ice.predix.io/oauth/token',
+                    url: config.uaa.uri,
                     headers: {
                         'cache-control': 'no-cache',
                         'content-type': 'application/x-www-form-urlencoded'
                     },
                     auth: {
-                        username: 'acs-eval',
-                        password: 'acs_client'
+                        username: config.uaa.clientId,
+                        password: config.uaa.clientSecret
                     },
                     form: {
                         grant_type: 'client_credentials'
@@ -69,7 +78,7 @@ module.exports = (config) => {
                     const statusCode = (resp) ? resp.statusCode : 502;
                     if(err || statusCode !== 200) {
                         err = err || 'Error getting token: ' + statusCode;
-                        debug('Error getting token from', config.token_url, err);
+                        debug('Error getting token from', options.url, err);
                         if(!alreadyResolved) {
                             reject(err);
                         }
@@ -89,6 +98,61 @@ module.exports = (config) => {
                     }
                 });
             }
+        });
+    }
+
+    /**
+     * Checks that the provided user is allowed to perform the action described by the request
+     *
+     * @param {object} req - The request.  Compatible with expressjs request.
+     *                       Required properties: method, path
+     * @param {string} username - The subject (or username) of the requester.
+     * @returns {promise} - A promise to authorize the user.
+     *                      Resolves with the user and resource attributes.
+     *                      Rejected if not authorized, or an error occurs.
+     */
+    acs_utils.isAuthorized = (req, username) => {
+        return new Promise((resolve, reject) => {
+            // Ensure we have a valid token to talk to ACS
+            acs_utils._getToken().then((token) => {
+                // Formulate the request object
+                const options = {
+                    url: config.acsUri,
+                    headers: {
+                        'cache-control': 'no-cache',
+                        'content-type': 'application/x-www-form-urlencoded'
+                    },
+                    auth: {
+                        bearer: token,
+                    },
+                    body: {
+                        action: req.method,
+                        resourceIdentifier: req.path,
+                        subjectIdentifier: username
+                    }
+                };
+
+                // Call ACS
+                request.post(options, (err, resp, body) => {
+                    const statusCode = (resp) ? resp.statusCode : 502;
+                    if(err || statusCode !== 200) {
+                        err = err || 'Error getting verdict: ' + statusCode;
+                        debug('Error getting verdict from', options.url, err);
+                        reject(err);
+                    } else {
+                        const data = JSON.parse(body);
+                        // Check the 'effect' property
+                        if(data.effect === 'PERMIT') {
+                            resolve(data);
+                        } else {
+                            debug('Not Authorized', options.body, data);
+                            reject(data);
+                        }
+                    }
+                });
+            }).catch((err) => {
+                reject(err);
+            });
         });
     }
 

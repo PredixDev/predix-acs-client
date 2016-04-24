@@ -41,7 +41,6 @@ describe('#Configuration', () => {
         // Constructing should accept UAA client credentials, the ACS URI and the Predix Zone ID
         let instance = acs_util(testData.testOptions);
         expect(instance).to.exist;
-        // TODO: Add proper tests
     });
 
     it('should fetch a client token from UAA before calling ACS', (done) => {
@@ -288,18 +287,24 @@ describe('#Configuration', () => {
 describe('#Authroization', () => {
     it('should resolve the promise if authorized for the action', (done) => {
         // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
-        let stub = sinon.stub(request, 'post').returns(testData.stubPermitResponse);
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, JSON.stringify(testData.stubPermitResponse));
 
         const req = {
             method: 'GET',
             path: '/abc/def'
         };
 
-        acs_util.isAuthorized(req, 'test_user').then((result) => {
+        acs_instance.isAuthorized(req, 'test_user').then((result) => {
             // Result should be testData.stubPermitResponse
             // Check that the evaluate policy call was made correctly
             expect(stub.calledOnce).to.be.true;
-            expect(stub.calledWith(match({ uri: acsEvalUri })));
+            const acsReq = stub.firstCall.args[0];
+            expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+            expect(acsReq.body.action).to.equal('GET');
+            expect(acsReq.body.resourceIdentifier).to.equal('/abc/def');
+            expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+            done();
         }).catch((err) => {
             done(err);
         });
@@ -311,6 +316,11 @@ describe('#Authroization', () => {
     });
 
     it('should reject the promise if unable to query ACS', (done) => {
+        // TODO: WRITE TEST
+        done();
+    });
+
+    it('should reject the promise if ACS does not respond', (done) => {
         // TODO: WRITE TEST
         done();
     });
