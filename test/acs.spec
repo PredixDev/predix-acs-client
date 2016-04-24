@@ -288,7 +288,7 @@ describe('#Authroization', () => {
     it('should resolve the promise if authorized for the action', (done) => {
         // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
         let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify(testData.stubPermitResponse));
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
 
         const req = {
             method: 'GET',
@@ -304,6 +304,7 @@ describe('#Authroization', () => {
             expect(acsReq.body.action).to.equal('GET');
             expect(acsReq.body.resourceIdentifier).to.equal('/abc/def');
             expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+            expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
             done();
         }).catch((err) => {
             done(err);
@@ -312,7 +313,7 @@ describe('#Authroization', () => {
 
     it('should reject the promise if not authorized for the action', (done) => {
         let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify(testData.stubDenyResponse));
+        stub.yields(null, { statusCode: 200 }, testData.stubDenyResponse);
 
         const req = {
             method: 'GET',
@@ -333,6 +334,7 @@ describe('#Authroization', () => {
                 expect(acsReq.body.action).to.equal('GET');
                 expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
                 expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+                expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
                 expect(err.effect).to.equal('DENY');
                 done();
             } catch(fail) {
@@ -364,6 +366,7 @@ describe('#Authroization', () => {
                 expect(acsReq.body.action).to.equal('GET');
                 expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
                 expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+                expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
                 expect(err).to.match(/Error getting verdict/);
                 done();
             } catch(fail) {
@@ -395,6 +398,7 @@ describe('#Authroization', () => {
                 expect(acsReq.body.action).to.equal('GET');
                 expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
                 expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+                expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
                 expect(err).to.match(/Error getting verdict/);
                 done();
             } catch(fail) {

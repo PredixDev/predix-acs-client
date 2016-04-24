@@ -120,11 +120,13 @@ module.exports = (config) => {
                     url: config.acsUri + '/v1/policy-evaluation',
                     headers: {
                         'cache-control': 'no-cache',
-                        'content-type': 'application/x-www-form-urlencoded'
+                        'content-type': 'application/json',
+                        'Predix-Zone-Id': config.zoneId
                     },
                     auth: {
                         bearer: token,
                     },
+                    json: true,
                     body: {
                         action: req.method,
                         resourceIdentifier: req.path,
@@ -133,14 +135,13 @@ module.exports = (config) => {
                 };
 
                 // Call ACS
-                request.post(options, (err, resp, body) => {
+                request.post(options, (err, resp, data) => {
                     const statusCode = (resp) ? resp.statusCode : 502;
                     if(err || statusCode !== 200) {
                         err = err || 'Error getting verdict: ' + statusCode;
-                        debug('Error getting verdict from', options.url, err);
+                        debug('Error getting verdict with request', options, err);
                         reject(err);
                     } else {
-                        const data = JSON.parse(body);
                         // Check the 'effect' property
                         if(data.effect === 'PERMIT') {
                             resolve(data);
