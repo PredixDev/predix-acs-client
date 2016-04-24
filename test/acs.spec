@@ -311,18 +311,129 @@ describe('#Authroization', () => {
     });
 
     it('should reject the promise if not authorized for the action', (done) => {
-        // TODO: WRITE TEST
-        done();
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, JSON.stringify(testData.stubDenyResponse));
+
+        const req = {
+            method: 'GET',
+            path: '/xyz'
+        };
+
+        acs_instance.isAuthorized(req, 'test_user').then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected DENY, but got PERMIT'));
+        }).catch((err) => {
+            // err should be testData.stubDenyResponse
+            // Check that the evaluate policy call was made correctly
+            // Need to wrap these expects in try..catch because a failure will throw and not call done.
+            try {
+                expect(stub.calledOnce).to.be.true;
+                const acsReq = stub.firstCall.args[0];
+                expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+                expect(acsReq.body.action).to.equal('GET');
+                expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
+                expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+                expect(err.effect).to.equal('DENY');
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
     });
 
     it('should reject the promise if unable to query ACS', (done) => {
-        // TODO: WRITE TEST
-        done();
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 404 }, null);
+
+        const req = {
+            method: 'GET',
+            path: '/xyz'
+        };
+
+        acs_instance.isAuthorized(req, 'test_user').then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected Reject, but got Resolve'));
+        }).catch((err) => {
+            // err should be testData.stubDenyResponse
+            // Check that the evaluate policy call was made correctly
+            // Need to wrap these expects in try..catch because a failure will throw and not call done.
+            try {
+                expect(stub.calledOnce).to.be.true;
+                const acsReq = stub.firstCall.args[0];
+                expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+                expect(acsReq.body.action).to.equal('GET');
+                expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
+                expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+                expect(err).to.match(/Error getting verdict/);
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
     });
 
     it('should reject the promise if ACS does not respond', (done) => {
-        // TODO: WRITE TEST
-        done();
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, null, null);
+
+        const req = {
+            method: 'GET',
+            path: '/xyz'
+        };
+
+        acs_instance.isAuthorized(req, 'test_user').then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected Reject, but got Resolve'));
+        }).catch((err) => {
+            // err should be testData.stubDenyResponse
+            // Check that the evaluate policy call was made correctly
+            // Need to wrap these expects in try..catch because a failure will throw and not call done.
+            try {
+                expect(stub.calledOnce).to.be.true;
+                const acsReq = stub.firstCall.args[0];
+                expect(acsReq.url).to.equal(testData.testOptions.acsUri);
+                expect(acsReq.body.action).to.equal('GET');
+                expect(acsReq.body.resourceIdentifier).to.equal('/xyz');
+                expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+                expect(err).to.match(/Error getting verdict/);
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
+    });
+
+    it('should reject the promise if unable to get a client token', (done) => {
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, null, null);
+
+        const req = {
+            method: 'GET',
+            path: '/xyz'
+        };
+
+        // Mock out the call to UAA
+        acs_instance._getToken = () => {
+            return new Promise((resolve, reject) => {
+                reject('nope - no token here');
+            });
+        };
+
+        acs_instance.isAuthorized(req, 'test_user').then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected Reject, but got Resolve'));
+        }).catch((err) => {
+            // err should be testData.stubDenyResponse
+            // Check that the evaluate policy call was never made
+            // Need to wrap these expects in try..catch because a failure will throw and not call done.
+            try {
+                expect(stub.notCalled).to.be.true;
+                expect(err).to.equal('nope - no token here');
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
     });
 });
 
