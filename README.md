@@ -2,6 +2,10 @@
 Node module to check authorization for a user to perform an action against Predix ACS policies.
 Primarily used when protecting REST endpoints with UAA JWT tokens.
 
+NOTE that the client credentials that you use to query ACS must have the appropriate permissions to do so.
+As this is a UAA client, these should be added as authorities, not scopes.
+The minimun is ``acs.policies.read`` and ``predix-acs.zones.your-acs-zone-id.user``
+
 ## Usage
 Install via npm
 
