@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "debug": "^2.2.0",
+    "predix-uaa-client": "git://github.build.ge.com/hubs/predix-uaa-client.git",
     "request": "^2.72.0",
     "url": "^0.11.0"
   }

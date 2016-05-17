@@ -3,6 +3,7 @@ const testData = require('./data');
 const chai = require('chai');
 const expect = chai.expect;
 const request = require('request');
+const uaa = require('predix-uaa-client');
 const sinon = require('sinon');
 const match = sinon.match;
 const acs_util = require('../index');
@@ -13,15 +14,26 @@ const acs_util = require('../index');
 const acsEvalUri = 'https://predix-acs.test.predix.io/v1/policy-evaluation';
 
 let acs_instance = null;
+let token = null;
+let uaaError = false;
 
 beforeEach((done) => {
+
     acs_instance = acs_util(testData.testOptions);
-    // Mock out the call to UAA
-    acs_instance._getToken = () => {
-        return new Promise((resolve, reject) => {
-            resolve('fake-token-not-used-directly');
-        });
+
+    uaaError = false;
+
+    // Sample token
+    token = {
+        access_token: 'ABC',
+        expire_time: Date.now() + (123 * 1000),
+        renew_time: Date.now() + (120 * 1000)
     };
+
+    // Mock out the call to UAA
+    sinon.stub(uaa, 'getToken', () => {
+        return (uaaError) ? Promise.reject('nope - no token here') : Promise.resolve(token);
+    });
 
     done();
 });
@@ -30,6 +42,7 @@ afterEach((done) => {
     // Undo any sinon mocks
     if(request.get.restore) request.get.restore();
     if(request.post.restore) request.post.restore();
+    if(uaa.getToken.restore) uaa.getToken.restore();
     done();
 });
 
@@ -41,197 +54,6 @@ describe('#Configuration', () => {
         // Constructing should accept UAA client credentials, the ACS URI and the Predix Zone ID
         let instance = acs_util(testData.testOptions);
         expect(instance).to.exist;
-    });
-
-    it('should fetch a client token from UAA before calling ACS', (done) => {
-        // We expect a POST call with the client credentials as Basic Auth.
-        let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token', expires_in: 123 }));
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            // Result should be our fake token
-            // Check that the UAA call was made correctly
-            expect(stub.calledOnce).to.be.true;
-            expect(stub.calledWith(match({ uri: testData.testOptions.uaa.uri })));
-            expect(stub.calledWith(match({ form: { grant_type: 'client_credentials' }})));
-            expect(token).to.equal('test-token');
-            done();
-        }).catch((err) => {
-            done(err);
-        });
-    });
-
-    it('should not fetch a client token from UAA if not expiring soon', (done) => {
-        // We expect a POST call with the client credentials as Basic Auth.
-        let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-1', expires_in: 123 }));
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            // Result should be our fake token
-            // Check that the UAA call was made correctly
-            expect(stub.calledOnce).to.be.true;
-            expect(stub.calledWith(match({ uri: testData.testOptions.uaa.uri })));
-            expect(stub.calledWith(match({ form: { grant_type: 'client_credentials' }})));
-            expect(token).to.equal('test-token-1');
-
-            stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-2', expires_in: 123 }));
-
-            // Get it again, it should not call our stub again
-            instance._getToken().then((token) => {
-                // Stub should be called only once overall
-                expect(stub.calledOnce).to.be.true;
-                expect(token).to.equal('test-token-1');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
-        }).catch((err) => {
-            done(err);
-        });
-    });
-
-    it('should fetch a new client token from UAA if expiring soon, but give the current one', (done) => {
-        // We expect a POST call with the client credentials as Basic Auth.
-        let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-1', expires_in: 10 }));
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            // Result should be our fake token
-            // Check that the UAA call was made correctly
-            expect(stub.calledOnce).to.be.true;
-            expect(stub.calledWith(match({ uri: testData.testOptions.uaa.uri })));
-            expect(stub.calledWith(match({ form: { grant_type: 'client_credentials' }})));
-            expect(token).to.equal('test-token-1');
-
-            stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-2', expires_in: 1000 }));
-
-            // Get it again, it should give the first token, but still call the stub again
-            instance._getToken().then((token) => {
-                // Stub should be called twice overall
-                expect(stub.calledTwice).to.be.true;
-                expect(token).to.equal('test-token-1');
-
-                // Get it one more time, to prove that we got another new token
-                instance._getToken().then((token) => {
-                    // Stub should be called twice overall
-                    expect(stub.calledTwice).to.be.true;
-                    // But now have the new token
-                    expect(token).to.equal('test-token-2');
-                    done();
-                }).catch((err) => {
-                    done(err);
-                });
-
-            }).catch((err) => {
-                done(err);
-            });
-        }).catch((err) => {
-            done(err);
-        });
-    });
-
-    it('should fetch a new client token from UAA if already expired', (done) => {
-        // We expect a POST call with the client credentials as Basic Auth.
-        let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-1', expires_in: 0 }));
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            // Result should be our fake token
-            // Check that the UAA call was made correctly
-            expect(stub.calledOnce).to.be.true;
-            expect(stub.calledWith(match({ uri: testData.testOptions.uaa.uri })));
-            expect(stub.calledWith(match({ form: { grant_type: 'client_credentials' }})));
-            expect(token).to.equal('test-token-1');
-
-            stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-2', expires_in: 1000 }));
-
-            // Get it again, it should give us the new token
-            instance._getToken().then((token) => {
-                // Stub should be called twice overall
-                expect(stub.calledTwice).to.be.true;
-                expect(token).to.equal('test-token-2');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
-        }).catch((err) => {
-            done(err);
-        });
-    });
-
-    it('should fail if getting an error while calling UAA', (done) => {
-        // We expect a POST call with the client credentials as Basic Auth.
-        let stub = sinon.stub(request, 'post');
-        stub.yields('nope', { statusCode: 403 }, null);
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            done(new Error('Expected error, but got token'));
-        }).catch((err) => {
-            done();
-        });
-    });
-
-    it('should fail if no response while calling UAA', (done) => {
-        // We expect a POST call with the client credentials as Basic Auth.
-        let stub = sinon.stub(request, 'post');
-        stub.yields(null, null, null);
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            done(new Error('Expected error, but got token'));
-        }).catch((err) => {
-            done();
-        });
-    });
-
-    it('should still return a token, if valid, even if fetching a new one has an error', (done) => {
-        // Make the token appear to expire soon, but not yet
-        let stub = sinon.stub(request, 'post');
-        stub.yields(null, { statusCode: 200 }, JSON.stringify({ access_token: 'test-token-1', expires_in: 10 }));
-
-        // Configure a new instance, without mocking out the _getToken call, so we can test it.
-        let instance = acs_util(testData.testOptions);
-
-        instance._getToken().then((token) => {
-            // Result should be our fake token
-            // Check that the UAA call was made correctly
-            expect(stub.calledOnce).to.be.true;
-            expect(stub.calledWith(match({ uri: testData.testOptions.uaa.uri })));
-            expect(stub.calledWith(match({ form: { grant_type: 'client_credentials' }})));
-            expect(token).to.equal('test-token-1');
-
-            // Make the next call fail
-            stub.yields('Oh no', { statusCode: 403 }, null);
-
-            // Get it again, it should give the first token, but still call the stub again
-            instance._getToken().then((token) => {
-                // Stub should be called twice overall
-                expect(stub.calledTwice).to.be.true;
-                expect(token).to.equal('test-token-1');
-                done();
-            }).catch((err) => {
-                done(err);
-            });
-        }).catch((err) => {
-            done(err);
-        });
     });
 
     it('should error with missing all configuration', () => {
@@ -407,6 +229,36 @@ describe('#Authroization', () => {
         });
     });
 
+    it('should get a client token from UAA before calling ACS', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        const req = {
+            method: 'GET',
+            path: '/abc/def'
+        };
+
+        // Reset the token to ensure this call is getting the one we set
+        token.access_token = 'MY-TEST-TOKEN';
+
+        acs_instance.isAuthorized(req, 'test_user').then((result) => {
+            // Result should be testData.stubPermitResponse
+            // Check that the evaluate policy call was made correctly
+            expect(stub.calledOnce).to.be.true;
+            const acsReq = stub.firstCall.args[0];
+            expect(acsReq.url).to.equal(testData.acsEvalUri);
+            expect(acsReq.body.action).to.equal('GET');
+            expect(acsReq.body.resourceIdentifier).to.equal('/abc/def');
+            expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+            expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
+            expect(acsReq.auth.bearer).to.equal(token.access_token);
+            done();
+        }).catch((err) => {
+            done(err);
+        });
+    });
+
     it('should reject the promise if unable to get a client token', (done) => {
         let stub = sinon.stub(request, 'post');
         stub.yields(null, null, null);
@@ -416,12 +268,8 @@ describe('#Authroization', () => {
             path: '/xyz'
         };
 
-        // Mock out the call to UAA
-        acs_instance._getToken = () => {
-            return new Promise((resolve, reject) => {
-                reject('nope - no token here');
-            });
-        };
+        // Get our mocked UAA call to fail
+        uaaError = true;
 
         acs_instance.isAuthorized(req, 'test_user').then((result) => {
             // Expecting rejected promise
@@ -432,7 +280,6 @@ describe('#Authroization', () => {
             // Need to wrap these expects in try..catch because a failure will throw and not call done.
             try {
                 expect(stub.notCalled).to.be.true;
-                expect(err).to.equal('nope - no token here');
                 done();
             } catch(fail) {
                 done(fail);
