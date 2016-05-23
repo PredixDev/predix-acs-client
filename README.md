@@ -26,7 +26,7 @@ const config = {
     zoneId: 'your-acs-zone-id'
 };
 const acs = require('predix-acs-client')(config);
-acs.isAuthorized({ method: 'GET', path: 'example', 'my-user').then((result) => {
+acs.isAuthorized({ method: 'GET', path: 'example' }, 'my-user').then((result) => {
      // 'my-user' is authorized to perform the 'GET' action on the 'example' resource.
      console.log('Permission Granted');
 }).catch((err) => {
