@@ -1,3 +1,10 @@
+THIS REPO IS NO LONGER MAINTAINED - CODE HAS BEEN MOVED TO [PUBLIC GITHUB](https://github.com/PredixDev/predix-acs-client) AND PUBLISHED IN NPM
+```
+npm install --save predix-acs-client
+```
+
+---
+
 # predix-acs-client
 Node module to check authorization for a user to perform an action against Predix ACS policies.
 Primarily used when protecting REST endpoints with UAA JWT tokens.
