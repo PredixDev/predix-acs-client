@@ -290,8 +290,27 @@ describe('#Authroization', () => {
 
 describe('#Permissions', () => {
     it('should be able to query attributes assigned to a user', (done) => {
-        // TODO: WRITE TEST
-        done();
+        // We expect a GET call with the HTTP Verb, username
+        let stub = sinon.stub(request, 'get');
+        stub.yields(null, { statusCode: 200 }, testData.stubSubjectPermitResponse);
+
+        // Reset the token to ensure this call is getting the one we set
+        token.access_token = 'MY-TEST-TOKEN';
+
+        const subjectIdentifier = 'test_user'
+
+        acs_instance.getSubjectAttributes(subjectIdentifier).then((result) => {
+            // Result should be testData.stubSubjectPermitResponse
+            // Check that the get subject call was made correctly
+            expect(stub.calledOnce).to.be.true;
+            const acsReq = stub.firstCall.args[0];
+            expect(acsReq.url).to.equal(testData.acsSubjectUri + subjectIdentifier);
+            expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
+            expect(acsReq.auth.bearer).to.equal(token.access_token);
+            done();
+        }).catch((err) => {
+            done(err);
+        });
     });
 
     it('should be able to query attributes required for a resourse', (done) => {

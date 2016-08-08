@@ -105,6 +105,49 @@ module.exports = (config) => {
         });
     }
 
+    /**
+     * Get subject of provided user from acs
+     *
+     * @param {string} username - The subject (or username) of the requester.
+     * @returns {promise} - A promise to authorize the user.
+     *                      Resolves with the user and resource attributes.
+     *                      Rejected if not authorized, or an error occurs.
+     */
+    acs_utils.getSubjectAttributes = (subjectIdentifier) => {
+        return new Promise((resolve, reject) => {
+            // Ensure we have a valid token to talk to ACS
+            acs_utils._getToken().then((token) => {
+                // Formulate the request object
+                const options = {
+                    url: config.acsUri + '/v1/subject/' + subjectIdentifier,
+                    headers: {
+                        'cache-control': 'no-cache',
+                        'content-type': 'application/json',
+                        'Predix-Zone-Id': config.zoneId
+                    },
+                    auth: {
+                        bearer: token
+                    },
+                    json: true
+                };
+
+                // Call ACS
+                request.get(options, (err, resp, data) => {
+                    const statusCode = (resp) ? resp.statusCode : 502;
+                    if(err || statusCode !== 200) {
+                        err = err || 'Error getting subject: ' + statusCode;
+                        debug('Error getting subject with request', options, err);
+                        reject(err);
+                    } else {
+                        resolve(data);
+                    }
+                });
+            }).catch((err) => {
+                reject(err);
+            });
+        });
+    }
+
     return acs_utils;
 }
 
