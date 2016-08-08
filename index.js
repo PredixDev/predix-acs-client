@@ -113,13 +113,13 @@ module.exports = (config) => {
      *                      Resolves with the user and resource attributes.
      *                      Rejected if not authorized, or an error occurs.
      */
-    acs_utils.getUserAttributes = (username) => {
+    acs_utils.getSubjectAttributes = (subjectIdentifier) => {
         return new Promise((resolve, reject) => {
             // Ensure we have a valid token to talk to ACS
             acs_utils._getToken().then((token) => {
                 // Formulate the request object
                 const options = {
-                    url: config.acsUri + '/v1/subject/' + username,
+                    url: config.acsUri + '/v1/subject/' + subjectIdentifier,
                     headers: {
                         'cache-control': 'no-cache',
                         'content-type': 'application/json',
