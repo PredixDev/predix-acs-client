@@ -86,4 +86,30 @@ data.testOptions = {
 
 data.acsEvalUri = data.testOptions.acsUri + '/v1/policy-evaluation';
 
+data.acsSubjectUri = data.testOptions.acsUri + '/v1/subject/';
+
+data.stubSubjectPermitResponse = {
+   "subjectIdentifier": "test_user",
+   "attributes": [
+     {
+         "issuer": "https://acs.attributes.int",
+         "name": "role",
+         "value": "APP_USER",
+         "scopes": null
+     },
+     {
+         "issuer": "https://acs.attributes.int",
+         "name": "work_hours",
+         "value": "09:00-17:00 UTC",
+         "scopes": null
+     },
+     {
+         "issuer": "https://acs.attributes.int",
+         "name": "role",
+         "value": "WORKFLOW_APPROVER",
+         "scopes": null
+     }
+   ]
+ };
+
 module.exports = data;
