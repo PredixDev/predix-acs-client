@@ -1,6 +1,6 @@
 {
   "name": "predix-acs-client",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Node module to check authorization for an action with ACS protecting REST endpoints.  This library does not provide ACS administration functionality.",
   "main": "index.js",
   "scripts": {
