@@ -49,18 +49,25 @@ module.exports = (config) => {
         });
     }
 
-    /**
+     /**
      * Checks that the provided user is allowed to perform the action described by the request
-     *
-     * @param {object} req - The request.  Compatible with expressjs request.
-     *                       Required properties: method, path
-     * @param {string} username - The subject (or username) of the requester.
+     * This request is decoupled from the request path, allowing for an alternative description of resources
+     * 
+     * @param {object} abacRequest - The Attributes Based Access Control request.  
+     *                       Required properties: subject, resource, action 
      * @returns {promise} - A promise to authorize the user.
      *                      Resolves with the user and resource attributes.
      *                      Rejected if not authorized, or an error occurs.
      */
-    acs_utils.isAuthorized = (req, username) => {
+    acs_utils.isAuthorizedFor = (abacRequest) => {
         return new Promise((resolve, reject) => {
+            if (abacRequest === null || !abacRequest) {
+                return reject('Parameter: \'abacRequest\' may not be null or undefined.');
+            }
+            if (!abacRequest.action || !abacRequest.resourceIdentifier || !abacRequest.subjectIdentifier) {
+                return reject('Parameter: \'abacRequest\' must contain the properties: action, resourceIdentifier, and subjectIdentifier');
+            }
+
             // Ensure we have a valid token to talk to ACS
             acs_utils._getToken().then((token) => {
                 // Formulate the request object
@@ -75,11 +82,7 @@ module.exports = (config) => {
                         bearer: token
                     },
                     json: true,
-                    body: {
-                        action: req.method,
-                        resourceIdentifier: req.path,
-                        subjectIdentifier: username
-                    }
+                    body: abacRequest
                 };
 
                 // Call ACS
@@ -103,6 +106,26 @@ module.exports = (config) => {
                 reject(err);
             });
         });
+    }
+
+    /**
+     * Checks that the provided user is allowed to perform the action described by the request
+     *
+     * @param {object} req - The request.  Compatible with expressjs request.
+     *                       Required properties: method, path
+     * @param {string} username - The subject (or username) of the requester.
+     * @returns {promise} - A promise to authorize the user.
+     *                      Resolves with the user and resource attributes.
+     *                      Rejected if not authorized, or an error occurs.
+     */
+    acs_utils.isAuthorized = (req, username) => {
+        const abacRequest = {
+            action: req.method,
+            resourceIdentifier: req.path,
+            subjectIdentifier: username
+        };
+
+        return acs_utils.isAuthorizedFor(abacRequest);
     }
 
     /**
