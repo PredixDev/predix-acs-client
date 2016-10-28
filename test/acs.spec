@@ -106,7 +106,113 @@ describe('#Configuration', () => {
     });
 });
 
-describe('#Authroization', () => {
+
+describe('#Parameter Checking', () => {
+    it('should reject the promise if a null \'abacRequest\' value is provided', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        acs_instance.isAuthorizedFor(null).then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected the promise to reject the invalid parameter, it instead completed successfully.'));
+        }).catch((err) => {
+            // parameter checking is done first, before the request is built and sent
+            try {
+                expect(stub.calledOnce).to.be.false; // should fail before the request is made
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
+    });
+
+    it('should reject the promise if an undefined \'abacRequest\' value is provided', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        const myObject = {};
+
+        acs_instance.isAuthorizedFor(myObject.undefinedProperty).then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected the promise to reject the invalid parameter, it instead completed successfully.'));
+        }).catch((err) => {
+            // parameter checking is done first, before the request is built and sent
+            try {
+                expect(stub.calledOnce).to.be.false; // should fail before the request is made
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
+    });
+
+    it('should reject the promise if the \'abacRequest\' is missing property \'subjectIdentifier\'', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        const abacRequest = {action: 'GET', resourceIdentifier: 'foo'};
+
+        acs_instance.isAuthorizedFor(abacRequest).then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected the promise to reject due to missing \'abacRequest.subjectIdentifier\' property, it instead completed successfully.'));
+        }).catch((err) => {
+            // parameter checking is done first, before the request is built and sent
+            try {
+                expect(stub.calledOnce).to.be.false; // should fail before the request is made
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
+    });
+
+    it('should reject the promise if the \'abacRequest\' is missing property \'resourceIdentifier\'', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        const abacRequest = {action: 'GET', subjectIdentifier: 'foo'};
+
+        acs_instance.isAuthorizedFor(abacRequest).then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected the promise to reject due to missing \'abacRequest.resourceIdentifier\' property, it instead completed successfully.'));
+        }).catch((err) => {
+            // parameter checking is done first, before the request is built and sent
+            try {
+                expect(stub.calledOnce).to.be.false; // should fail before the request is made
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
+    });
+
+    it('should reject the promise if the \'abacRequest\' is missing property \'action\'', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        const abacRequest = {subjectIdentifier: 'foo', resourceIdentifier: 'bar'};
+
+        acs_instance.isAuthorizedFor(abacRequest).then((result) => {
+            // Expecting rejected promise
+            done(new Error('Expected the promise to reject due to missing \'abacRequest.action\' property, it instead completed successfully.'));
+        }).catch((err) => {
+            // parameter checking is done first, before the request is built and sent
+            try {
+                expect(stub.calledOnce).to.be.false; // should fail before the request is made
+                done();
+            } catch(fail) {
+                done(fail);
+            }
+        });
+    });
+});
+
+describe('#Authorization', () => {
     it('should resolve the promise if authorized for the action', (done) => {
         // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
         let stub = sinon.stub(request, 'post');
