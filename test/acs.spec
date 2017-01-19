@@ -232,6 +232,7 @@ describe('#Authorization', () => {
             expect(acsReq.body.action).to.equal('GET');
             expect(acsReq.body.resourceIdentifier).to.equal('/abc/def');
             expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+            expect(acsReq.body.subjectAttributes).to.be.undefined;
             expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
             done();
         }).catch((err) => {
@@ -390,6 +391,38 @@ describe('#Authorization', () => {
             } catch(fail) {
                 done(fail);
             }
+        });
+    });
+
+    it('should resolve the promise if authorized for the action with scope', (done) => {
+        // We expect a POST call with the HTTP Verb, Resource being accessed and the user subject
+        let stub = sinon.stub(request, 'post');
+        stub.yields(null, { statusCode: 200 }, testData.stubPermitResponse);
+
+        const req = {
+            method: 'GET',
+            path: '/abc/def'
+        };
+
+        const scope = ['g123','g234', 'resource.edit'];
+
+        acs_instance.isAuthorized(req, 'test_user', scope).then((result) => {
+            // Result should be testData.stubPermitResponse
+            // Check that the evaluate policy call was made correctly
+            expect(stub.calledOnce).to.be.true;
+            const acsReq = stub.firstCall.args[0];
+            expect(acsReq.url).to.equal(testData.acsEvalUri);
+            expect(acsReq.body.action).to.equal('GET');
+            expect(acsReq.body.resourceIdentifier).to.equal('/abc/def');
+            expect(acsReq.body.subjectIdentifier).to.equal('test_user');
+            expect(acsReq.body.subjectAttributes.length).to.equal(2);
+            expect(acsReq.body.subjectAttributes[0].value).to.equal('g123');
+            expect(acsReq.body.subjectAttributes[1].value).to.equal('g234');
+            expect(acsReq.body.subjectAttributes[1].name).to.equal('group');
+            expect(acsReq.headers['Predix-Zone-Id']).to.equal(testData.testOptions.zoneId);
+            done();
+        }).catch((err) => {
+            done(err);
         });
     });
 });

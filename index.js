@@ -52,9 +52,9 @@ module.exports = (config) => {
      /**
      * Checks that the provided user is allowed to perform the action described by the request
      * This request is decoupled from the request path, allowing for an alternative description of resources
-     * 
-     * @param {object} abacRequest - The Attributes Based Access Control request.  
-     *                       Required properties: subject, resource, action 
+     *
+     * @param {object} abacRequest - The Attributes Based Access Control request.
+     *                       Required properties: subject, resource, action
      * @returns {promise} - A promise to authorize the user.
      *                      Resolves with the user and resource attributes.
      *                      Rejected if not authorized, or an error occurs.
@@ -118,12 +118,31 @@ module.exports = (config) => {
      *                      Resolves with the user and resource attributes.
      *                      Rejected if not authorized, or an error occurs.
      */
-    acs_utils.isAuthorized = (req, username) => {
+    acs_utils.isAuthorized = (req, username, scopes) => {
+
         const abacRequest = {
             action: req.method,
             resourceIdentifier: req.path,
             subjectIdentifier: username
         };
+
+        var attributes = [];
+        // constructing scope-based subject attributes
+        if (scopes) {
+          scopes.forEach(function(scope) {
+            var userGroupsRegEx = config.userGroupsRegEx || 'g.*';
+            if (scope.match(userGroupsRegEx)) {
+              attributes.push({
+                issuer: 'UAA',
+                name: 'group',
+                value: scope
+              });
+            }
+          });
+        }
+        if (attributes.length > 0) {
+          abacRequest.subjectAttributes = attributes;
+        }
 
         return acs_utils.isAuthorizedFor(abacRequest);
     }
@@ -173,4 +192,3 @@ module.exports = (config) => {
 
     return acs_utils;
 }
-
