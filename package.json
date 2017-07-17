@@ -20,14 +20,13 @@
   "license": "SEE LICENSE IN LICENSE.md",
   "devDependencies": {
     "chai": "^3.5.0",
-    "istanbul": "^0.4.3",
+    "istanbul": "^0.4.5",
     "mocha": "^2.4.5",
-    "sinon": "^1.17.3"
+    "sinon": "^1.17.7"
   },
   "dependencies": {
-    "debug": "^2.2.0",
-    "predix-uaa-client": "^1.1.0",
-    "request": "^2.72.0",
-    "url": "^0.11.0"
+    "debug": "^2.6.8",
+    "predix-uaa-client": "^1.2.2",
+    "request": "^2.81.0"
   }
 }

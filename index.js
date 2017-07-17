@@ -19,7 +19,7 @@ module.exports = (config) => {
     if(!config || !config.zoneId) missingConfig.push('zoneId');
 
     if(missingConfig.length > 0) {
-        const msg = 'Required configuration is missing: ' + missingConfig.join();
+        const msg = `Required configuration is missing: ${missingConfig.join()}`;
         debug(msg);
         throw new Error(msg);
     }
@@ -72,7 +72,7 @@ module.exports = (config) => {
             acs_utils._getToken().then((token) => {
                 // Formulate the request object
                 const options = {
-                    url: config.acsUri + '/v1/policy-evaluation',
+                    url: `${config.acsUri}/v1/policy-evaluation`,
                     headers: {
                         'cache-control': 'no-cache',
                         'content-type': 'application/json',
@@ -89,7 +89,7 @@ module.exports = (config) => {
                 request.post(options, (err, resp, data) => {
                     const statusCode = (resp) ? resp.statusCode : 502;
                     if(err || statusCode !== 200) {
-                        err = err || 'Error getting verdict: ' + statusCode;
+                        err = err || `Error getting verdict: ${statusCode}`;
                         debug('Error getting verdict with request', options, err);
                         reject(err);
                     } else {
@@ -155,7 +155,7 @@ module.exports = (config) => {
             acs_utils._getToken().then((token) => {
                 // Formulate the request object
                 const options = {
-                    url: config.acsUri + '/v1/subject/' + subjectIdentifier,
+                    url: `${config.acsUri}/v1/subject/${subjectIdentifier}`,
                     headers: {
                         'cache-control': 'no-cache',
                         'content-type': 'application/json',
@@ -171,7 +171,7 @@ module.exports = (config) => {
                 request.get(options, (err, resp, data) => {
                     const statusCode = (resp) ? resp.statusCode : 502;
                     if(err || statusCode !== 200) {
-                        err = err || 'Error getting subject: ' + statusCode;
+                        err = err || `Error getting subject: ${statusCode}`;
                         debug('Error getting subject with request', options, err);
                         reject(err);
                     } else {
